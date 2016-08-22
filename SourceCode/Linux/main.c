@@ -14,7 +14,7 @@ extern "C" {
 #include <limits.h>
 
 int RS232_OpenComport(int, int);
-int RS232_PollComport(int, unsigned char *, int);												   
+int RS232_PollComport(int, unsigned char *, int);
 int RS232_SendByte(int, unsigned char);
 int RS232_SendBuf(int, unsigned char *, int);
 void RS232_CloseComport(int);
@@ -61,11 +61,15 @@ void ProcessProgram(void);
 int main(int arg, char *argv[])
 {	
 	int fLen = 0;
+	int device = 0;
 
-	if(arg < 3)
+	if(arg < 4)
 	{
-		printf("Input parameters error, it should be:\n");
-		printf("for example:CCLoader.exe [/dev/]ttyS0 abc.bin\n");
+		printf("Invalid parameters.\n");
+		printf("Usage: %s <com number> <bin file> <device>\n", argv[0]);
+		printf("Example: %s 2 abc.bin 0\n", argv[0]);
+		printf(" <device>: 0 -- Default (e.g. UNO)\n");
+		printf("           1 -- Leonardo\n");
 		return 0;
 	}
 	int i;
@@ -82,8 +86,20 @@ int main(int arg, char *argv[])
 		return 0;	// Open comprt error
 	}
 	printf("Comport open:\n");
-	printf("Baud:115200 data:8 parity:none stopbit:1 DTR:off RTS:off\n");
-	RS232_disableDTR(com);
+
+	device = atoi(argv[3]);
+	if(device == 0)
+	{
+		printf("Device  : Default (e.g. UNO)\n\n");
+		printf("Baud:115200 data:8 parity:none stopbit:1 DTR:off RTS:off\n");
+		RS232_disableDTR(com);
+	}
+	else
+	{
+		printf("Device: Leonardo\n\n");
+		printf("Baud:115200 data:8 parity:none stopbit:1 DTR:on RTS:off\n");
+		RS232_enableDTR(com);
+	}
 	RS232_disableRTS(com);
 
 	char form[5] = ".bin";
@@ -135,7 +151,7 @@ int main(int arg, char *argv[])
 	}
 	else
 	{
-		printf("Request sent already!Waiting for respond...\n");
+		printf("Request sent already! Waiting for respond...\n");
 	}
 	
 	while(!end)
