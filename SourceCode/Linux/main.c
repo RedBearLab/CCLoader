@@ -35,6 +35,7 @@ void RS232_disableRTS(int);
 FILE *pfile = NULL;
 long fsize = 0;
 int BlkTot = 0;
+int Remain = 0;
 int BlkNum = 0;
 int DownloadProgress = 0;
 int com = -1;
@@ -79,6 +80,11 @@ int main(int arg, char *argv[])
 		{
 			com = i;
 			break;
+		}
+		else if(i == 29 && com == -1)
+		{
+			printf("Port not found, check if arguments are in the correct order.\n");
+			return 0;
 		}
 	}
 	if(1 == RS232_OpenComport(com, 115200))
@@ -130,11 +136,18 @@ int main(int arg, char *argv[])
     fseek(pfile,0,SEEK_END);
     fsize = ftell(pfile);
     fseek(pfile,0,SEEK_SET);
-    BlkTot = fsize / 512;
-	if((fsize%512) != 0)
+    //BlkTot = fsize / 512;
+	Remain = fsize % 512;
+	if(Remain != 0)
 	{
-		printf("Warning: file size isn't the integer multiples of 512, last bytes will miss to be sent!\n");
+		BlkTot = fsize / 512 + 1;
+		printf("Warning: file size isn't the integer multiples of 512, last bytes will be set to 0xFF\n");
 	}
+	else
+	{
+		BlkTot = fsize / 512;
+	}
+	
 	printf("Block total: %d\n", BlkTot);
     BlkNum = 0;
 
@@ -195,11 +208,26 @@ void ProcessProgram()
 					DownloadProgress = 1;
                     unsigned char buf[515];
                     buf[0] = SDATA;
-                    fread(buf+1, 512, 1, pfile);
+
+					if((BlkNum == (BlkTot-1)) && (Remain != 0))
+					{
+						fread(buf+1, Remain, 1, pfile);
+						int filled = 512 - Remain;
+						//int i = 0;
+						for(int i = 0; i<filled; i++)
+						{
+							buf[Remain+1+i] = 0xFF;
+						}
+					}
+					else
+					{
+						fread(buf+1, 512, 1, pfile);
+					}
+                    
 
                     unsigned short CheckSum = 0x0000;
-					unsigned int i;
-                    for(i=0; i<512; i++)
+					//unsigned int i;
+                    for(unsigned int i=0; i<512; i++)
                     {
                         CheckSum += (unsigned char)buf[i+1];
                     }
