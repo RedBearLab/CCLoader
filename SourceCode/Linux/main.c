@@ -92,6 +92,8 @@ int main(int arg, char *argv[])
 		return 0;	// Open comprt error
 	}
 	printf("Comport open:\n");
+        // wait for port to settle
+        sleep(3);
 
 	device = atoi(argv[3]);
 	if(device == 0)
@@ -187,6 +189,9 @@ void ProcessProgram()
     int len;
 	unsigned char rx;
 	len = RS232_PollComport(com, &rx, 1);
+    // do not eat CPU
+    if (len == 0) usleep(10000);
+
     if(len > 0)
     {
         switch(rx)
