@@ -91,7 +91,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 int DD = 6;
 int DC = 5;
 int RESET = 4;
-int LED = 13;
+int LED = LED_BUILTIN;
 
 /******************************************************************************
  VARIABLES*/
@@ -547,23 +547,21 @@ void loop()
   unsigned char Verify = 0;
   unsigned int read_len = 0;
   unsigned int read_count = 0;
+  unsigned int read_start = 0;
    
   while(!Continue)     // Wait for starting
   {  
     
-    if(Serial.available()==3)
+    if(Serial.available()>=5)
     { 
       command = Serial.read();
       if (command == SBEGIN)      
       {
         Verify = Serial.read();
-        Serial.read();
         Continue = 1;
       }
       else if (command == CHIP_ID) {
         Continue = 1;
-        Serial.read(); // discard parameter
-        Serial.read();
       }
       else if (command == SDUMP) {
         Continue = 1;
@@ -571,11 +569,13 @@ void loop()
         tmp[0]=Serial.read();
         tmp[1]=Serial.read();
         read_len = (tmp[0]<<8 | tmp[1]);
+        tmp[0]=Serial.read();
+        tmp[1]=Serial.read();
+        read_start = (tmp[0]<<8 | tmp[1]);
       }
-      else
-      {
+
+      while (Serial.available() > 0) {
         Serial.read(); // Clear RX buffer
-        Serial.read();
       }
     } else {
       delay(1);
@@ -630,6 +630,8 @@ void loop()
 
   if (command == SDUMP) {
     // dump flash instead of programming it...
+    addr = read_start * 128;
+    
     while (!Done) {
 
       //write_flash_memory_block(rxBuf, addr, 512); // src, address, count                    
