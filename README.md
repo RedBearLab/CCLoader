@@ -4,7 +4,7 @@ CCLoader
 
 Note!|
 ----|
-This is fork of the original https://github.com/RedBearLab/CCLoader that adds functionality to also read flash (and to check chip ID/revision). These pull request (https://github.com/RedBearLab/CCLoader/pull/27) for these changes has been submitted, so you may be better of using the original version as this version likely won't be regularly updated. 
+This is fork of the original https://github.com/RedBearLab/CCLoader that adds functionality to also read flash (and to check chip ID/revision). Pull request (https://github.com/RedBearLab/CCLoader/pull/27) for these changes has been submitted, so you may be better off using the original version as this version likely won't be regularly updated (if these changes end up in the mainline).
 Help needed, only Linux executable has been updated with new functionality Windows and MacOSX versions need these changes merged to them before they work against the new updated Arduino sketch. 
 
 
