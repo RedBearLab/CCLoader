@@ -1,14 +1,22 @@
 CCLoader
 ========
 
-Burn CC254x firmware using an Arduino board.
+
+Note!|
+----|
+This is fork of the original https://github.com/RedBearLab/CCLoader that adds functionality to also read flash (and to check chip ID/revision). These pull request (https://github.com/RedBearLab/CCLoader/pull/27) for these changes has been submitted, so you may be better of using the original version as this version likely won't be regularly updated. 
+Help needed, only Linux executable has been updated with new functionality Windows and MacOSX versions need these changes merged to them before they work against the new updated Arduino sketch. 
+
+
+
+## Burn CC254x firmware using an Arduino board.
 
 1. Load the CCLoader Arduino sketch to the UNO board.
 2. Wire the pins:
   ![image](CCLoader.jpg)
 3. Use CCLoader.exe to load the Demo.bin to the UNO board and the board will burn the firmware to the BLE Mini.
 
-# New functionalty #
+## New functionalty 
 
 * ccloader executable now has three commands/modes:
   * id - Read chip ID/Revision
