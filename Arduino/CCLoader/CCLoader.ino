@@ -79,7 +79,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define SDATA                 0x02
 #define SRSP                  0x03
 #define SEND                  0x04
-#define ERRO                 0x05
+#define ERRO                  0x05
+#define CHIP_ID               0x11
+#define SDUMP                 0x12
+#define FBLOCK                0x13
+
 #define WAITING               0x00
 #define RECEIVING             0x01
 
@@ -87,7 +91,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 int DD = 6;
 int DC = 5;
 int RESET = 4;
-int LED = 13;
+int LED = LED_BUILTIN;
 
 /******************************************************************************
  VARIABLES*/
@@ -258,9 +262,10 @@ void debug_init(void)
 *           GET_CHIP_ID command.
 * @return   Returns the chip id returned by the DUP
 ******************************************************************************/
-unsigned char read_chip_id(void)
+unsigned char read_chip_id(unsigned char *revision)
 {
     unsigned char id = 0;
+    unsigned char rev = 0;
 
     // Make sure DD is output
     pinMode(DD, OUTPUT);
@@ -275,12 +280,15 @@ unsigned char read_chip_id(void)
     if(wait_dup_ready() == 1)
     {
       // Read ID and revision
-      id = read_debug_byte(); // ID
-      read_debug_byte();      // Revision (discard)
+      id = read_debug_byte();  // ID
+      rev = read_debug_byte(); // Revision
     }
     // Set DD as output
     pinMode(DD, OUTPUT);
 
+    if (revision) {
+        *revision = rev;
+    }
     return id;
 }
 
@@ -532,41 +540,74 @@ void setup()
 void loop() 
 {
   unsigned char chip_id = 0;
+  unsigned char chip_rev = 0;
   unsigned char debug_config = 0;
   unsigned char Continue = 0;
+  unsigned char command = 0;
   unsigned char Verify = 0;
-  
+  unsigned int read_len = 0;
+  unsigned int read_count = 0;
+  unsigned int read_start = 0;
+   
   while(!Continue)     // Wait for starting
   {  
     
-    if(Serial.available()==2)
-    {      
-      if(Serial.read() == SBEGIN)
+    if(Serial.available()>=5)
+    { 
+      command = Serial.read();
+      if (command == SBEGIN)      
       {
         Verify = Serial.read();
         Continue = 1;
       }
-      else
-      {
+      else if (command == CHIP_ID) {
+        Continue = 1;
+      }
+      else if (command == SDUMP) {
+        Continue = 1;
+        unsigned char tmp[2];
+        tmp[0]=Serial.read();
+        tmp[1]=Serial.read();
+        read_len = (tmp[0]<<8 | tmp[1]);
+        tmp[0]=Serial.read();
+        tmp[1]=Serial.read();
+        read_start = (tmp[0]<<8 | tmp[1]);
+      }
+
+      while (Serial.available() > 0) {
         Serial.read(); // Clear RX buffer
       }
+    } else {
+      delay(1);
     }
   }
 
   debug_init();
-  chip_id = read_chip_id();
+  chip_id = read_chip_id(&chip_rev);
   if(chip_id == 0) 
   {
     Serial.write(ERRO);  
     return; // No chip detected, run loop again.
   }
-  
+  else 
+  {
+    Serial.write(CHIP_ID); 
+    Serial.write(chip_id);
+    Serial.write(chip_rev);
+  }
   RunDUP();
+  if (command == CHIP_ID) {  
+      return;
+  }
   debug_init();
-  
-  chip_erase();
-  RunDUP();
-  debug_init();
+
+
+  if (command == SBEGIN) {
+    // erase chip only if we are flashing it...
+    chip_erase(); 
+    RunDUP(); 
+    debug_init();
+  }
   
   // Switch DUP to external crystal osc. (XOSC) and wait for it to be stable.
   // This is recommended if XOSC is available during programming. If
@@ -577,15 +618,57 @@ void loop()
   // Enable DMA (Disable DMA_PAUSE bit in debug configuration)
   debug_config = 0x22;
   debug_command(CMD_WR_CONFIG, &debug_config, 1);
+
   
   // Program data (start address must be word aligned [32 bit])
-  Serial.write(SRSP);    // Request data blocks
-  digitalWrite(LED, HIGH);  
   unsigned char Done = 0;
   unsigned char State = WAITING;
   unsigned char  rxBuf[514]; 
   unsigned int BufIndex = 0;
   unsigned int addr = 0x0000;
+ 
+
+  if (command == SDUMP) {
+    // dump flash instead of programming it...
+    addr = read_start * 128;
+    
+    while (!Done) {
+
+      //write_flash_memory_block(rxBuf, addr, 512); // src, address, count                    
+      unsigned char bank = addr / (512 * 16);
+      unsigned int  offset = (addr % (512 * 16)) * 4;
+      uint16_t checksum = 0;
+      read_flash_memory_block(bank, offset, 512, rxBuf); // Bank, address, count, dest.             
+      digitalWrite(LED, HIGH);
+      Serial.write(FBLOCK);
+      for(unsigned int i = 0; i < 512; i++) {
+        Serial.write(rxBuf[i]);
+        checksum += rxBuf[i];
+      }
+      unsigned char tmp = checksum >> 8;
+      Serial.write(tmp);
+      tmp = checksum & 0xff;
+      Serial.write(tmp);
+      //digitalWrite(LED, LOW);
+      addr += (unsigned int)128;              
+      read_count++;
+
+      if(read_count >= read_len) {
+        Done = 1;
+      }
+         
+    }
+    
+    digitalWrite(LED, LOW);
+    RunDUP();
+    return;
+  }
+
+
+  // Start flash programming...
+  
+  Serial.write(SRSP);    // Request data blocks
+  digitalWrite(LED, HIGH);  
   while(!Done)
   {
     while(Serial.available())
