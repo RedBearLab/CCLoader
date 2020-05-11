@@ -16,7 +16,22 @@ Burn CC254x firmware using an Arduino board.
   * write - write flash memory
 
 Note! Currently only Linux executables is updated with the new functionality. Windows and MacOSX executables will need to be updated with changes made to Linux executable before those can be used...
-  
+
+## Syntax
+```
+Usage: ./ccloader_tng <serialport> <device> <command> [<bin file> [<verify> | <read_start_block> <read_blocks>]]
+Examples:
+Read Chip ID: ./ccloader_tng /dev/ttyUSB0 1 id
+ Write Flash: ./ccloader_tng /dev/ttyUSB0 1 write flash.bin 1
+  Read Flash: ./ccloader_tng /dev/ttyUSB0 1 read dump.bin 0 512
+Example: ./ccloader_tng /dev/ttyUSB0 1 id
+          <device>: 0 -- Default (e.g. UNO)
+                    1 -- Leonardo/Mini Pro/etc...
+          <verify>: 0 -- No verify (default)
+                    1 -- Verify (when flashing)
+ <read_stat_block>: 0 -- Start flash dump from block (0 = beginning of the flash)
+     <read_blocks>: 512 -- How many blocks to read (512 = 256Kb)
+```
 
 ## Query chip ID
 
@@ -34,7 +49,6 @@ Chip Revision: 0x13
 
 
 Closing serial port
-#
 ```
 
 ## Write flash image to chip
@@ -45,7 +59,7 @@ Verify enabled (flashing process will take longer)
 Serial port: /dev/ttyACM0
 Device: Leonardo
 Baud:115200 data:8 parity:none stopbit:1 DTR:on RTS:off
-Image file: ../../Bin/CC2541hm10v540.bin
+Image file: ../../Bin/Demo.bin
 Total blocks: 512 (262144 bytes)
 
 Send command: write
