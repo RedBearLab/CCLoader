@@ -114,6 +114,9 @@ int main(int arg, char *argv[])
 	unsigned char j = 0;
 	for(j=5; j>0; j--)
 	{
+    // Consume buffer
+    char buf[512];
+    read(Cport[0], buf, sizeof(buf));
 	  printf("Remain: %d\n", j);
 	  sleep(1);
 	}
